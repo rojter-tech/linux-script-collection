@@ -1,35 +1,113 @@
 #!/bin/sh
+# Script for automatic scaling of one or two screen displays in X
+# using a scale factor for the primary display
+# Written by Daniel Reuter
 
 # Base configuration
-MAIN_WIDTH=3240; MAIN_HEIGHT=2160
-EXT_WIDTH=1920;  EXT_HEIGHT=1080;
+WIDTH_MAIN=3240;    WIDTH_EXT=1920; 
+HEIGHT_MAIN=2160;   HEIGHT_EXT=1080;
 
-# Main settings
-read -p "Input main screen scale number (eg. 0.5, 1.5 or 2): " SCALENR_MAIN
-SCALE_SETTING_MAIN=$SCALENR_MAINx$SCALENR_MAIN
+MAIN_MODE=$(echo $WIDTH_MAIN)x$(echo $HEIGHT_MAIN)
+EXT_MODE=$(echo $WIDTH_EXT)x$(echo $HEIGHT_EXT)
 
-# External settings
-SCALENR_EXT=$(awk "BEGIN {print ($MAIN_WIDTH/$EXT_WIDTH) * ($SCALENR_MAIN)}")
-SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT
-EXT_SCREEN_POS=0x0
+# Defaults
+SCALENR_MAIN="0.65"
+SCALE_SETTING_MAIN="0.65x0.65"
+LB=0.5; UB=1 # Lower and upper boundaries
 
-# Execute xrandr
-MAIN_HEIGHT_POS=$(awk "BEGIN {print $EXT_HEIGHT * $SCALENR_EXT}")
-MAIN_SCREEN_POS=0x$MAIN_HEIGHT_POS
-echo "Scaling external screen by" $SCALENR_EXT
-echo "Setting main screen height position to" $MAIN_HEIGHT_POS
-echo "."
-sleep 0.3
-echo ".."
-sleep 0.3
-echo "..."
 
-# First clear settings ...
-xrandr \
---output eDP1 --primary --mode $(echo $MAIN_WIDTH)x$(echo $MAIN_HEIGHT) --rotate normal --pos 0x$MAIN_HEIGHT --scale 1x1 \
---output DP1 --mode $(echo $EXT_WIDTH)x$(echo $EXT_HEIGHT) --rotate normal --pos 0x0 --scale 1x1
+external_exists () {
+    command='xrandr --output DP1 --mode '$(echo $EXT_MODE)
+    stdout=$($command 2>&1)
+    notpresent="cannot find"
 
-# then execute xrandr
-xrandr \
---output eDP1 --primary --mode $(echo $MAIN_WIDTH)x$(echo $MAIN_HEIGHT) --rotate normal --pos $MAIN_SCREEN_POS --scale $SCALE_SETTING_MAIN \
---output DP1 --mode $(echo $EXT_WIDTH)x$(echo $EXT_HEIGHT) --rotate normal --pos $EXT_SCREEN_POS --scale $SCALE_SETTING_EXT
+    if echo "$stdout" | grep -q "$notpresent"; then
+        echo "There is no external screen matching the output mode"
+        return 1
+    else
+        EXTERNAL_SCREEN="true"
+        return 0
+    fi
+}
+
+
+set_scaling_properties() {
+    # External screen settings
+    SCALENR_EXT=$(awk "BEGIN {print ($WIDTH_MAIN/$WIDTH_EXT) * ($SCALENR_MAIN)}")
+    SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT
+    SCREEN_POS_EXT="0x0"
+
+    # Main screen
+    SCALE_SETTING_MAIN=$SCALENR_MAINx$SCALENR_MAIN
+    NEW_WIDTH_MAIN=$(awk "BEGIN {print $WIDTH_MAIN * $SCALENR_MAIN}")
+    NEW_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_MAIN * $SCALENR_MAIN}")
+    NEW_MAIN_MODE=$(echo $NEW_WIDTH_MAIN)x$(echo $NEW_HEIGHT_MAIN)
+
+    SCALED_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_EXT * $SCALENR_EXT}")
+    MAIN_SCREEN_POS=0x$SCALED_HEIGHT_MAIN
+
+    echo "Scaling main screen by $SCALENR_MAIN" 
+}
+
+
+xrandr_external() {
+    # First clear settings ...
+    xrandr \
+    --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x$HEIGHT_MAIN --scale 1x1 \
+    --output DP1 --mode $EXT_MODE --rotate normal --pos $SCREEN_POS_EXT --scale 1x1
+    # then execute xrandr
+    xrandr \
+    --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos $MAIN_SCREEN_POS --scale $SCALE_SETTING_MAIN \
+    --output DP1 --mode $EXT_MODE --rotate normal --pos $SCREEN_POS_EXT --scale $SCALE_SETTING_EXT
+}
+
+
+xrandr_no_external() {
+    # First clear settings ...
+    xrandr \
+    --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x0 --scale 1x1 --fb $MAIN_MODE
+    # then execute xrandr
+    xrandr \
+    --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x0 --scale $SCALE_SETTING_MAIN --fb $NEW_MAIN_MODE
+}
+
+
+main() {
+    echo "."
+    sleep 0.3
+    echo ".."
+    sleep 0.3
+    echo "..."
+    if external_exists; then
+        echo "Found external, setting up both screens"
+        echo "Scaling external screen by $SCALENR_EXT" 
+        echo "Setting main screen height position to $NEW_HEIGHT_MAIN" 
+        xrandr_external
+    else
+        echo "Found no external, setting up only the internal screen"
+        echo "Scaled main resolution: $NEW_MAIN_MODE"
+        xrandr_no_external
+    fi
+
+    echo "done hopefully"
+}
+
+
+read_user_input() {
+
+    # Main scale setting
+    read -p "Input main screen scale number (eg. 0.5, 0.75 or 1): " SCALE_INPUT
+        
+    if (( $(echo "$SCALE_INPUT >= $LB" |bc -l) )) && (( $(echo "$SCALE_INPUT <= $UB" |bc -l) )); then
+        SCALENR_MAIN=$SCALE_INPUT
+        set_scaling_properties
+        main
+    else
+        echo "The number must lie betwen $LB and $UB"
+        echo "Exiting ..."
+    fi
+    
+}
+
+
+read_user_input
