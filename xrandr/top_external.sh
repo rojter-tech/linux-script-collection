@@ -1,19 +1,40 @@
 #!/bin/sh
 # Script for automatic scaling of one or two screen displays in X
 # using a scale factor for the primary display
+#
 # Written by Daniel Reuter
 
-# Base configuration
-WIDTH_MAIN=3240;    WIDTH_EXT=1920; 
-HEIGHT_MAIN=2160;   HEIGHT_EXT=1080;
 
-MAIN_MODE=$(echo $WIDTH_MAIN)x$(echo $HEIGHT_MAIN)
-EXT_MODE=$(echo $WIDTH_EXT)x$(echo $HEIGHT_EXT)
+# # # # # #   Base configuration  # # # # # # # 
+WIDTH_MAIN=3240;             WIDTH_EXT=1920;  #
+HEIGHT_MAIN=2160;            HEIGHT_EXT=1080; #
+# # # # # # # # # # # # # # # # # # # # # # # #
+ 
+# # # # # # # # # # # # # # # Default # # # # # # # # # # # # # #
+SCALENR_MAIN="0.65"                                             #
+SCALE_SETTING_MAIN=$(echo $SCALENR_MAIN)x$(echo $SCALENR_MAIN)  #
+LB=0.5; UB=1 # Lower and upper boundaries                       #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Defaults
-SCALENR_MAIN="0.65"
-SCALE_SETTING_MAIN="0.65x0.65"
-LB=0.5; UB=1 # Lower and upper boundaries
+
+set_scaling_properties() {
+    # Main screen
+    MAIN_MODE=$(echo $WIDTH_MAIN)x$(echo $HEIGHT_MAIN)
+    SCALE_SETTING_MAIN=$SCALENR_MAINx$SCALENR_MAIN
+    NEW_WIDTH_MAIN=$(awk "BEGIN {print $WIDTH_MAIN * $SCALENR_MAIN}")
+    NEW_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_MAIN * $SCALENR_MAIN}")
+    NEW_MAIN_MODE=$(echo $NEW_WIDTH_MAIN)x$(echo $NEW_HEIGHT_MAIN)
+    SCALED_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_EXT * $SCALENR_EXT}")
+    MAIN_SCREEN_POS=0x$SCALED_HEIGHT_MAIN
+
+    # External screen settings
+    EXT_MODE=$(echo $WIDTH_EXT)x$(echo $HEIGHT_EXT)
+    SCALENR_EXT=$(awk "BEGIN {print ($WIDTH_MAIN/$WIDTH_EXT) * ($SCALENR_MAIN)}")
+    SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT
+    SCREEN_POS_EXT="0x0"
+
+    echo "Scaling main screen by $SCALENR_MAIN" 
+}
 
 
 external_exists () {
@@ -31,31 +52,12 @@ external_exists () {
 }
 
 
-set_scaling_properties() {
-    # External screen settings
-    SCALENR_EXT=$(awk "BEGIN {print ($WIDTH_MAIN/$WIDTH_EXT) * ($SCALENR_MAIN)}")
-    SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT
-    SCREEN_POS_EXT="0x0"
-
-    # Main screen
-    SCALE_SETTING_MAIN=$SCALENR_MAINx$SCALENR_MAIN
-    NEW_WIDTH_MAIN=$(awk "BEGIN {print $WIDTH_MAIN * $SCALENR_MAIN}")
-    NEW_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_MAIN * $SCALENR_MAIN}")
-    NEW_MAIN_MODE=$(echo $NEW_WIDTH_MAIN)x$(echo $NEW_HEIGHT_MAIN)
-
-    SCALED_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_EXT * $SCALENR_EXT}")
-    MAIN_SCREEN_POS=0x$SCALED_HEIGHT_MAIN
-
-    echo "Scaling main screen by $SCALENR_MAIN" 
-}
-
-
 xrandr_external() {
     # First clear settings ...
     xrandr \
     --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x$HEIGHT_MAIN --scale 1x1 \
     --output DP1 --mode $EXT_MODE --rotate normal --pos $SCREEN_POS_EXT --scale 1x1
-    # then execute xrandr
+    # then execute scaling
     xrandr \
     --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos $MAIN_SCREEN_POS --scale $SCALE_SETTING_MAIN \
     --output DP1 --mode $EXT_MODE --rotate normal --pos $SCREEN_POS_EXT --scale $SCALE_SETTING_EXT
@@ -66,7 +68,7 @@ xrandr_no_external() {
     # First clear settings ...
     xrandr \
     --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x0 --scale 1x1 --fb $MAIN_MODE
-    # then execute xrandr
+    # then execute scaling
     xrandr \
     --output eDP1 --primary --mode $MAIN_MODE --rotate normal --pos 0x0 --scale $SCALE_SETTING_MAIN --fb $NEW_MAIN_MODE
 }
@@ -78,6 +80,8 @@ main() {
     echo ".."
     sleep 0.3
     echo "..."
+    sleep 0.3
+    set_scaling_properties
     if external_exists; then
         echo "Found external, setting up both screens"
         echo "Scaling external screen by $SCALENR_EXT" 
@@ -94,13 +98,11 @@ main() {
 
 
 read_user_input() {
-
-    # Main scale setting
+    # Main scale factor
     read -p "Input main screen scale number (eg. 0.5, 0.75 or 1): " SCALE_INPUT
-        
+    
     if (( $(echo "$SCALE_INPUT >= $LB" |bc -l) )) && (( $(echo "$SCALE_INPUT <= $UB" |bc -l) )); then
         SCALENR_MAIN=$SCALE_INPUT
-        set_scaling_properties
         main
     else
         echo "The number must lie betwen $LB and $UB"
