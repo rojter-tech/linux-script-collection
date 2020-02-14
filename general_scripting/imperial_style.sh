@@ -54,7 +54,31 @@ read_stdout_then_match ()
 }
 
 
+incremental_loop()
+{
+    for i in {0..10..2}
+    do
+        echo "Shit nr $i"
+    done
+}
+
+
+while_decremental_loop()
+{
+    declare -i counter
+    counter=10
+    while [ $counter -gt 2 ]; do
+        echo "Counter is now $counter"
+        counter=counter-1
+    done
+    echo ""
+    echo "Because counter become $counter the loop exited"
+}
+
+
 #for_each_in_list
 #while_reading_chunks
 #capture_stdout_to_var
-read_stdout_then_match
+#read_stdout_then_match
+#incremental_loop
+while_decremental_loop
