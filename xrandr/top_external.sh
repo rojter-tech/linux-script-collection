@@ -4,34 +4,32 @@
 #
 # Written by Daniel Reuter
 
-
-# # # # # #   Base configuration  # # # # # # # 
-WIDTH_MAIN=3240;             WIDTH_EXT=1920;  #
-HEIGHT_MAIN=2160;            HEIGHT_EXT=1080; #
-# # # # # # # # # # # # # # # # # # # # # # # #
- 
+# # # # # # # # # # #   Base configuration  # # # # # # # # # # # 
+WIDTH_MAIN=3240;                               WIDTH_EXT=1920;  #
+HEIGHT_MAIN=2160;                              HEIGHT_EXT=1080; #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  #    #    #    #    #    #    #    #    #    #    #    #    #  
 # # # # # # # # # # # # # # # Default # # # # # # # # # # # # # #
-SCALENR_MAIN="0.65"                                             #
-SCALE_SETTING_MAIN=$(echo $SCALENR_MAIN)x$(echo $SCALENR_MAIN)  #
+SCALENR_MAIN=0.65                                               #
 LB=0.5; UB=1 # Lower and upper boundaries                       #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 set_scaling_properties() {
-    # Main screen
-    MAIN_MODE=$(echo $WIDTH_MAIN)x$(echo $HEIGHT_MAIN)
-    SCALE_SETTING_MAIN=$SCALENR_MAINx$SCALENR_MAIN
-    NEW_WIDTH_MAIN=$(awk "BEGIN {print $WIDTH_MAIN * $SCALENR_MAIN}")
-    NEW_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_MAIN * $SCALENR_MAIN}")
-    NEW_MAIN_MODE=$(echo $NEW_WIDTH_MAIN)x$(echo $NEW_HEIGHT_MAIN)
-    SCALED_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_EXT * $SCALENR_EXT}")
-    MAIN_SCREEN_POS=0x$SCALED_HEIGHT_MAIN
-
     # External screen settings
-    EXT_MODE=$(echo $WIDTH_EXT)x$(echo $HEIGHT_EXT)
-    SCALENR_EXT=$(awk "BEGIN {print ($WIDTH_MAIN/$WIDTH_EXT) * ($SCALENR_MAIN)}")
-    SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT
-    SCREEN_POS_EXT="0x0"
+    EXT_MODE=$(echo $WIDTH_EXT)x$(echo $HEIGHT_EXT);
+    SCALENR_EXT=$(awk "BEGIN {print ($WIDTH_MAIN/$WIDTH_EXT) * ($SCALENR_MAIN)}");
+    SCALE_SETTING_EXT=$SCALENR_EXTx$SCALENR_EXT;
+    SCREEN_POS_EXT="0x0";
+
+    # Main screen
+    MAIN_MODE=$(echo $WIDTH_MAIN)x$(echo $HEIGHT_MAIN);
+    SCALE_SETTING_MAIN=$(echo $SCALENR_MAIN)x$(echo $SCALENR_MAIN);
+    NEW_WIDTH_MAIN=$(awk "BEGIN {print $WIDTH_MAIN * $SCALENR_MAIN}");
+    NEW_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_MAIN * $SCALENR_MAIN}");
+    NEW_MAIN_MODE=$(echo $NEW_WIDTH_MAIN)x$(echo $NEW_HEIGHT_MAIN);
+    SCALED_HEIGHT_MAIN=$(awk "BEGIN {print $HEIGHT_EXT * $SCALENR_EXT}");
+    MAIN_SCREEN_POS=0x$SCALED_HEIGHT_MAIN;
 
     echo "Scaling main screen by $SCALENR_MAIN" 
 }
