@@ -76,9 +76,23 @@ while_decremental_loop()
 }
 
 
+case_user_input()
+{
+    read -p "What number?: " input
+        case $input in
+            one|two|1|2) echo "Only $input"?
+            ;;
+            three|four|3|4) echo "A $input is worse than a five."
+            ;;
+            *) echo "A $input is hell out of imagination!"
+        esac
+}
+
+
 #for_each_in_list
 #while_reading_chunks
 #capture_stdout_to_var
 #read_stdout_then_match
 #incremental_loop
-while_decremental_loop
+#while_decremental_loop
+case_user_input
